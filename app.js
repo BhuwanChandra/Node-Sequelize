@@ -13,6 +13,13 @@ db.authenticate()
 
 const app = express();
 
+// Handlebars
+app.engine('handlebars', exphbs({ defaultLayout: 'main' }));
+app.set('view engine', 'handlebars');
+
+// Set static folders
+app.use(express.static(path.join(__dirname, 'public')));
+
 const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
