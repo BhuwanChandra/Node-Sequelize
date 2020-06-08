@@ -1,7 +1,8 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const db = require('../config/database');
 const Gig = require('../models/gig');
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 
 const router = express.Router();
 
@@ -11,10 +12,7 @@ router.get('/', (req, res) => {
     raw: true,
     nest: true,
   })
-    .then(gigs => {
-      res.render('gigs', {gigs});
-      // res.json({gigs})
-    })
+    .then(gigs => res.render('gigs', {gigs}))
     .catch(err => console.log(err));
 });
 
@@ -25,28 +23,65 @@ router.get('/add', (req, res) => res.render('add'));
 
 // Add a gig
 router.post('/add', (req, res) => {
-  const data = {
-    title: "Simple wordpress website",
-    technologies: "wordpress, html, css",
-    budget: "$1000",
-    description:
-      "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English.",
-    contact_email: "testing1@test.com"
+  let { title, technologies, budget, description, contact_email } = req.body;
+  let errors = [];
+
+  // Validate Data
+  if(!title) errors.push({text: 'Please add a title!'});
+  if(!technologies) errors.push({text: 'Please add some technologies!'});
+  if(!description) errors.push({text: 'Please add a description!'});
+  if(!contact_email) errors.push({text: 'Please add a contact email!'});
+
+  // Check for errors
+  if(errors.length > 0){
+    res.render('add', {
+      errors,
+      title,
+      technologies,
+      description,
+      budget,
+      contact_email
+    })
+  } else {
+
+    if(!budget){
+      budget = 'Unknown';
+    } else {
+      budget = `$${budget}`;
+    }
+
+    // Make lowercase and remove spaces after comma
+    technologies = technologies.toLowerCase().replace(/, /g, ',')
+
+    // Insert into table
+    Gig.create({
+      title,
+      technologies,
+      budget,
+      description,
+      contact_email
+    })
+    .then(gig => res.redirect('/gigs'))
+    .catch(err => console.log(err));
   };
-
-  let { title, technologies, budget, description, contact_email } = data;
-
-  // Insert into table
-  Gig.create({
-    title,
-    technologies,
-    budget,
-    description,
-    contact_email
-  })
-  .then(gig => res.redirect('/gigs'))
-  .catch(err => console.log(err));
 })
 
+// Search for gigs
+router.get('/search', (req, res) => {
+  let { term } = req.query;
+
+  // Converting to lowercase
+  term = term.toLowerCase();
+
+  Gig.findAll({
+    where: {
+      technologies: { [Op.like]: '%' + term + '%' }
+    },
+    raw: true,
+    nest: true,
+  })
+  .then(gigs => res.render('gigs', {gigs}))
+  .catch(err => console.log(err));
+});
 
 module.exports = router;
