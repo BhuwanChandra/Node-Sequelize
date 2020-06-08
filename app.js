@@ -22,10 +22,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 5000;
 
-app.get("/", (req, res) => {
-  res.send("HOME PAGE!!!");
-});
-
+// Index route
+app.get("/", (req, res) => res.render('index', {layout: 'landing'}));
 
 // GIG Routes
 app.use('/gigs', require('./routes/gigs'));
